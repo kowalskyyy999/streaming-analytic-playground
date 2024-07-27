@@ -1,0 +1,55 @@
+version: '3.1'
+
+networks:
+  analytic-net:
+    driver: bridge
+    external: true
+
+services:
+  jobmanager:
+    image: flink-with-connector:1.17.0-scala_2.12-java11 
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: jobmanager
+    command: ["jobmanager"]
+    env_file:
+      - .env
+    ports:
+      - 8081:8081
+    networks:
+      - analytic-net
+
+  taskmanager:
+    image: flink-with-connector:1.17.0-scala_2.12-java11 
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: taskmanager
+    command: ["taskmanager"]
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 4
+    networks:
+      - analytic-net
+    depends_on:
+      - jobmanager
+    
+  sql-client:
+    image: flink-with-connector:1.17.0-scala_2.12-java11 
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    command: bin/sql-client.sh
+    container_name: flink-sql
+    depends_on:
+      - jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        rest.address: jobmanager
+    networks:
+      - analytic-net

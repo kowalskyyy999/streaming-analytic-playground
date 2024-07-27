@@ -1,0 +1,49 @@
+version: '3.7'
+
+networks:
+  starrocks-net:
+    driver: bridge
+    external: true
+
+services:
+  zookeeper:
+    image: zookeeper
+    container_name: zookeeper
+    restart: always
+    ports:
+      - "2181:2181"
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zookeeper:2888:3888;2181
+    networks:
+      - starrocks-net
+  
+  kafka:
+    image: kafka-server:$KAFKA_VERSION
+    build:
+      context: ./images/server
+      args:
+        - KAFKA_VERSION=$KAFKA_VERSION
+    container_name: kafka-server
+    restart: always
+    ports:
+      - 9092:9092
+    depends_on:
+      - zookeeper
+    networks:
+      - starrocks-net
+
+  kafka-connect:
+    image: kafka-connect:$KAFKA_VERSION
+    build:
+      context: ./images/connect
+      args:
+        - KAFKA_VERSION=$KAFKA_VERSION
+    container_name: kafka-connect
+    restart: always
+    ports:
+      - 8083:8083
+    depends_on:
+      - kafka
+    networks:
+      - starrocks-net

@@ -1,0 +1,174 @@
+version: '3.1'
+
+networks:
+  analytic-net:
+    driver: bridge
+    external: true
+
+services:
+  postgres:
+    image: postgres:15.3
+    container_name: db_analytic 
+    ports:
+      - 5433:5432
+    environment:
+      - POSTGRES_PASSWORD=Password123456 
+      - POSTGRES_USER=kowalskyyy
+      - POSTGRES_DB=kowlsss_db
+    networks:
+      - analytic-net
+
+  zookeeper:
+    image: zookeeper
+    container_name: zookeeper
+    restart: always
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zookeeper:2888:3888;2181
+    networks:
+      - analytic-net
+    depends_on:
+      - postgres
+
+  kafka:
+    image: kafka-server:$KAFKA_VERSION
+    build:
+      context: ./kafka/images/server
+      args:
+        - KAFKA_VERSION=$KAFKA_VERSION
+    container_name: kafka-server
+    restart: always
+    ports:
+      - 9092:9092
+    depends_on:
+      - zookeeper
+    networks:
+      - analytic-net
+
+  fe-server-2:
+    image: starrocks-fe.3.2.8
+    container_name: fe-server-2
+    build:
+      context: ./starrocks/image/fe
+      dockerfile: Dockerfile.fe
+    volumes:
+      - st-fe:/opt/starrocks/fe
+    ports:
+      - 8038:8030
+      - 9038:9030
+    networks:
+      - analytic-net
+    depends_on:
+      - kafka
+  
+  be-server-2:
+    image: starrocks-be.3.2.8
+    container_name: be-server-2
+    build:
+      context: ./starrocks/image/be
+      dockerfile: Dockerfile.be
+    volumes:
+      - st-be:/opt/starrocks/be
+    ports:
+      - 8048:8040
+      - 9068:9060
+    networks:
+      - analytic-net
+    depends_on:
+      - fe-server-2
+
+  cn-server-2:
+    image: starrocks-cn.3.2.8
+    container_name: cn-server-2
+    build:
+      context: ./starrocks/image/cn
+      dockerfile: Dockerfile.cn
+    volumes:
+      - st-cn:/opt/starrocks/be
+    networks:
+      - analytic-net
+    depends_on:
+      - be-server-2
+
+  jobmanager:
+    image: flink-with-connector:1.17.0-scala_2.12-java11 
+    build:
+      context: ./flink
+      dockerfile: Dockerfile
+    container_name: jobmanager
+    command: ["jobmanager"]
+    env_file:
+      - .env
+    ports:
+      - 8081:8081
+    networks:
+      - analytic-net
+    depends_on:
+      - cn-server-2
+
+  taskmanager:
+    image: flink-with-connector:1.17.0-scala_2.12-java11 
+    build:
+      context: ./flink
+      dockerfile: Dockerfile
+    container_name: taskmanager
+    command: ["taskmanager"]
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 4
+    networks:
+      - analytic-net
+    depends_on:
+      - jobmanager
+  
+  # be:
+  #   image: analytic-be:latest
+  #   build:
+  #     context: ./be
+  #     dockerfile: Dockerfile
+  #   container_name: be_analytic
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '0.01'
+  #         memory: 50M
+  #   ports:
+  #     - 9090:9090
+  #   networks:
+  #     - analytic-net
+  #   depends_on:
+  #     - taskmanager
+
+  # fe:
+  #   image: analytic-fe:latest
+  #   build:
+  #     context: ./fe
+  #     dockerfile: Dockerfile
+  #   container_name: fe_analytic
+  #   ports:
+  #     - 9000:80
+  #   networks:
+  #     - analytic-net
+
+  # ksqldb:
+  #   image: ksqldb-server
+  #   build:
+  #     context: ./ksqldb/images/server
+  #     args:
+  #       - KSQLDB_VERSION=0.29
+  #   container_name: ksqldb-server
+  #   ports:
+  #     - 8088:8088
+  #   networks:
+  #     - analytic-net
+  #   depends_on:
+  #     - kafka
+volumes:
+  st-fe:
+    external: true
+  st-be:
+    external: true
+  st-cn:
+    external: true

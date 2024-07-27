@@ -1,0 +1,27 @@
+version: '3.1'
+
+networks:
+  analytic-net:
+    driver: bridge
+    external: true
+
+services:
+  be:
+    image: analytic-be:latest
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: be_analytic
+    deploy:
+      resources:
+        limits:
+          cpus: '0.01'
+          memory: 50M
+    ports:
+      - 9090:9090
+    networks:
+      - analytic-net
+    depends_on:
+      - kafka-server
+      - fe_analytic
+      - db_analytic

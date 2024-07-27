@@ -1,0 +1,39 @@
+FROM starrocks-base:3.2.8
+
+ARG USER=starrocks
+ARG USER_UID=1000
+ARG USER_GID=1000
+
+ENV TZ="Asia/Jakarta"
+
+WORKDIR /opt/starrocks
+
+RUN apt-get install ca-certificates -y && \
+    mkdir /etc/pki && \
+    mkdir /etc/pki/tls && \
+    mkdir /etc/pki/tls/certs && \
+    cp /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt
+
+RUN mkdir be/storage && \
+    echo bash /opt/starrocks/be/bin/stop_cn.sh --daemon > "start_cn_server.sh" && \
+    echo bash /opt/starrocks/be/bin/start_cn.sh --daemon >> "start_cn_server.sh" && \
+    echo sleep 45 >> "start_cn_server.sh" && \
+    echo tail -f /opt/starrocks/be/log/cn.INFO >> "start_cn_server.sh" && \
+    chmod a+x start_cn_server.sh 
+
+RUN chown -R ${USER_UID}:${USER_GID} /opt/starrocks
+
+WORKDIR /opt
+
+VOLUME [ "/opt/starrocks/be" ]
+
+RUN rm -rf /var/lib/apt/lists/*
+
+EXPOSE 8040
+EXPOSE 8060
+EXPOSE 9050 
+EXPOSE 9060
+
+USER ${USER}
+
+CMD /opt/starrocks/start_cn_server.sh 

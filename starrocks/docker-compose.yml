@@ -1,0 +1,58 @@
+version: '3.3'
+
+networks:
+  analytic-net:
+    driver: bridge
+    external: true
+
+services:
+  fe-server-2:
+    image: starrocks-fe.3.2.8
+    container_name: fe-server-2
+    build:
+      context: ./image/fe
+      dockerfile: Dockerfile.fe
+    volumes:
+      - st-fe:/opt/starrocks/fe
+    ports:
+      - 8038:8030
+      - 9038:9030
+    networks:
+      - analytic-net
+  
+  be-server-2:
+    image: starrocks-be.3.2.8
+    container_name: be-server-2
+    build:
+      context: ./image/be
+      dockerfile: Dockerfile.be
+    volumes:
+      - st-be:/opt/starrocks/be
+    ports:
+      - 8048:8040
+      - 9068:9060
+    networks:
+      - analytic-net
+    depends_on:
+      - fe-server-2
+
+  cn-server-2:
+    image: starrocks-cn.3.2.8
+    container_name: cn-server-2
+    build:
+      context: ./image/cn
+      dockerfile: Dockerfile.cn
+    volumes:
+      - st-cn:/opt/starrocks/be
+    networks:
+      - analytic-net
+    depends_on:
+      - be-server-2
+
+volumes:
+  st-fe:
+    external: true
+  st-be:
+    external: true
+  st-cn:
+    external: true
