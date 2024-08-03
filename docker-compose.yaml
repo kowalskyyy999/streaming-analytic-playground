@@ -122,7 +122,6 @@ services:
       - analytic-net
     depends_on:
       - jobmanager
-  
   # be:
   #   image: analytic-be:latest
   #   build:
