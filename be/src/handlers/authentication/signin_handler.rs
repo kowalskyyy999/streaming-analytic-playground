@@ -1,26 +1,30 @@
-
 use axum::{extract::State, http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
-use crate::{error::{Error, Results}, state::AppState};
+use crate::{
+    error::{Error, Results},
+    state::AppState,
+};
 
 #[derive(Debug, Deserialize)]
 pub struct SigninBody {
     username: String,
-    password: String
-
+    password: String,
 }
 #[derive(Debug, Serialize)]
 pub struct SigninResp {
     message: String,
-    userid: String
+    userid: String,
 }
 
 impl Default for SigninResp {
     fn default() -> Self {
-        SigninResp { message: String::new(), userid: String::new() }
+        SigninResp {
+            message: String::new(),
+            userid: String::new(),
+        }
     }
 }
 
@@ -59,17 +63,18 @@ impl Default for SigninResp {
 // }
 
 pub async fn signin(
-    State(state) : State<AppState>,
-    Json(payload): Json<SigninBody>
+    State(state): State<AppState>,
+    Json(payload): Json<SigninBody>,
 ) -> Results<(StatusCode, Json<SigninResp>)> {
     let pool = state.storage.lock().unwrap().read().unwrap().pool.clone();
     let mut response = (StatusCode::OK, Json(SigninResp::default()));
 
     {
         response = match sqlx::query("select * from users where username = $1")
-        .bind(&payload.username)
-        .fetch_one(&pool)
-        .await {
+            .bind(&payload.username)
+            .fetch_one(&pool)
+            .await
+        {
             Ok(x) => {
                 let salt: String = x.get("salt");
                 let ps = format!("{}{}", payload.password, salt);
@@ -78,17 +83,24 @@ pub async fn signin(
                 let hash_r: String = x.get("password");
 
                 if hash_s == hash_r {
-                    let uuid: Uuid = x.get("id");
+                    let uuid: String = x.get("id");
                     (
                         StatusCode::OK,
-                        Json(SigninResp { message: "username valid".to_string(), userid: uuid.to_string()})
+                        Json(SigninResp {
+                            message: "username valid".to_string(),
+                            userid: uuid.to_string(),
+                        }),
                     )
                 } else {
-                    return Err(Error::SignInErr { message: "credential invalid".to_string() })
+                    return Err(Error::SignInErr {
+                        message: "credential invalid".to_string(),
+                    });
                 }
-            },
+            }
             Err(e) => {
-                return Err(Error::SignInErr { message: e.to_string() })
+                return Err(Error::SignInErr {
+                    message: e.to_string(),
+                })
             }
         };
     }
