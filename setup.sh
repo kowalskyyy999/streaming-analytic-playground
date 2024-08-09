@@ -8,5 +8,4 @@ docker compose up -d \
   be-server-2 \
   cn-server-2 \
   jobmanager \
-  taskmanager \
-  sql-client
+  taskmanager
