@@ -5,8 +5,17 @@
             <p class="sm:text-4xl tracking-tight text-opacity-10">{{  guessNumber }}</p> 
         </div>
         <div class="basis-1/2">
-            <h1 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-4xl">Clicks</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-4xl">Click</h1>
             <p class="sm:text-4xl tracking-tight text-opacity-10">{{  countClick }}</p> 
+        </div>
+        <div class="basis-1/5">
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">User Active</h1>
+            <p class="sm:text-3xl tracking-tight text-green-500">{{ userActive }}</p>
+            <!-- <div> -->
+            <!--   <span class="text-xl tracking-tight text-gray-900 sm:text-2xl">Last update: </span> -->
+            <!--   <span class="sm:text-xl tracking-tight text-red-500">{{ lastUpdate }}</span> -->
+            <!-- </div> -->
+            <!-- <p class="sm:text-xl tracking-tight text-green-500">Last Updated: {{ lastUpdate }}</p> -->
         </div>
     </div>
     <div class="bg-gray-100 t-6 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8 content-center text-center">
@@ -42,7 +51,10 @@ export default {
                 { id: 4, name: 'Macbook', description: '+7', image: '../images/laptop.jpg', value: 7 }
             ],
             guessNumber: null,
-            countClick: 0
+            countClick: 0,
+            userActive: 0,
+            lastUpdate: null,
+            websocket: null
         }
     },
     methods: {
@@ -107,15 +119,41 @@ export default {
             if (countClick !== null) {
                 this.countClick = Number(countClick)
             }
-        }
+        },
+        connectWebSocket() {
+            this.websocket = new WebSocket('ws://localhost:8000/ws');
+            
+            this.websocket.onopen = () => {
+              console.log('WebSocket connection opened');
+            };
+
+            this.websocket.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                console.log(message);
+                this.userActive = message.user_active;
+                this.lastUpdate = message.latest_ts;
+            };
+
+            this.websocket.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+
+            this.websocket.onclose = () => {
+                console.log('WebSocket connection closed');
+            };
+        },
 
     },
     created() {
         window.addEventListener('beforeunload', this.handlePageRefresh);
-        this.loadClickCount()
+        this.loadClickCount();
+        this.connectWebSocket();
     },
     beforeUnmount() {
         window.removeEventListener('beforeunload', this.handlePageRefresh);
+        if (this.websocket) {
+            this.websocket.close();
+        }
     },
     mounted() {
         this.generateRandomNumber()

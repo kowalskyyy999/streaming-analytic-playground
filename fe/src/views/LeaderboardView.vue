@@ -1,65 +1,92 @@
 <template>
-  <div class="flex h-screen bg-gray-200">
-    <div class="bg-gray-800 text-white w-64 py-4 px-6">
-      <h1 class="text-2xl font-bold mb-8">Leaderboard</h1>
-        <nav>
-          <div>
-            <button type="button" id="menu-button" aria-expanded="true" aria-haspopup="true">Test</button>
-          </div>
-          <div role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabindex="-1">
-            <div class="py-1" role="none">
-      <!-- Active: "bg-gray-100 text-gray-900", Not Active: "text-gray-700" -->
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1" id="menu-item-0">Account settings</a>
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1" id="menu-item-1">Support</a>
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700" role="menuitem" tabindex="-1" id="menu-item-2">License</a>
-              <form method="POST" action="#" role="none">
-                <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700" role="menuitem" tabindex="-1" id="menu-item-3">Sign out</button>
-      </form>
-    </div>
-  </div>
-        </nav>
-      <!-- <nav>
-        <div>
-        <button @click="toggleAccordion" class="w-full text-left bg-gray-700 text-white py-2 px-4">
-          Target
-        </button>
-        <div v-show="isAccordionOpen" class="bg-gray-800 text-white p-4">
-          <form @submit.prevent="submitTarget">
-            <label for="target" class="block text-gray-300 mb-2">Select Target:</label>
-            <select v-model="target" id="target" class="w-full p-2 mb-4 text-black">
-              <option v-for="n in 99" :key="n" :value="n + 1">{{ n + 1 }}</option>
-            </select>
-            <button type="submit" class="bg-blue-500 text-white py-2 px-4 rounded">Set Target</button>
-          </form>
-        </div>
+  <div class="flex min-h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <div class="w-64 bg-white shadow-md">
+      <div class="p-4 text-lg font-semibold border-b">
+        Leaderboard
       </div>
-      </nav> -->
+      <ul class="mt-4">
+        <li class="p-4">
+          <label for="dynamic-select" class="block text-sm font-medium text-gray-700 mb-2">Select Target (2 - 100):</label>
+          <select id="dynamic-select" v-model="selectedOption" @change="updateChart" class="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            <option v-for="option in options" :key="option.value" :value="option.value">
+                {{ option.text }}
+            </option>
+          </select>
+        </li> 
+      </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 p-8">
+      <!-- <ChartComponent :chartData="chartData" :options="chartOptions" /> -->
+      <LeaderboardComponent :selectedOption="selectedOption" />
     </div>
   </div>
 </template>
 
 <script>
+// import ChartComponent from './ChartComponent.vue';
+import LeaderboardComponent from './LeaderboardComponent.vue';
 export default {
   data() {
     return {
-      isAccordionOpen: false,
-      target: 2,
+      selectedOption: '2',
+      options: [],
     };
   },
+  created() {
+    for (let i = 2; i<=100; i++) {
+      this.options.push({ value: `${i}`, text: `Target ${i}`});
+    }
+  },
+  components: {
+    // ChartComponent,
+    LeaderboardComponent
+  },
   methods: {
-    toggleAccordion() {
-      this.isAccordionOpen = !this.isAccordionOpen;
+    updateChart() {
+      // this.$emit('update-chart', this.selectedOption);
+      this.$forceUpdate();
     },
-    submitTarget() {
-      alert(`Target set to: ${this.target}`);
-      // Handle the target value (e.g., send it to a backend or store it in a state management solution)
+    generateDataValues() {
+      console.log(this.selectedOption);
+      switch (this.selectedOption) {
+        case '2':
+          return [10, 20, 30, 40];
+        case '3':
+          return [15, 25, 35, 45];
+        case '4':
+          return [20, 30, 40, 50];
+        default:
+          return [5, 15, 25, 35];
+      }
     },
+  },
+  computed: {
+    chartData() {
+      const dataValues = this.generateDataValues();
+      return {
+        labels: ['Label 1', 'Label 2', 'Label 3', 'Label 4'],
+        datasets: [
+          {
+            label: `Data for ${this.selectedOption}`,
+            backgroundColor: '#42A5F5',
+            data: dataValues
+          }
+        ]
+      };
+    },
+    chartOptions() {
+      return {
+        responsive: true,
+        maintainAspectRatio: false
+      };
+    }
   },
 };
 </script>
 
-<style scoped>
+<style>
+/* Tailwind CSS handles most of the styling */
 </style>
-
-
-<!--  -->
