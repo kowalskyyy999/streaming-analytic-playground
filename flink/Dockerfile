@@ -6,4 +6,4 @@ RUN wget -P /opt/flink/lib https://repo1.maven.org/maven2/org/apache/flink/flink
 RUN wget -P /opt/flink/lib https://repo1.maven.org/maven2/org/apache/flink/flink-table-common/1.17.1/flink-table-common-1.17.1.jar
 
 RUN mkdir /opt/jobs
-COPY /flink/job/job.sql /opt/jobs/job.sql
+COPY ./job/job.sql /opt/jobs/job.sql
