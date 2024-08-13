@@ -1,0 +1,17 @@
+[package]
+name = "analytic_api"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+mysql = "25"
+r2d2_mysql = "25.0.0"
+tokio = {version = "1.*", features = ["full", "rt-multi-thread"]}
+axum = {version = "0.7", features = ["tracing", "macros", "tokio", "json"]}
+serde = {version = "1", features = ["derive"]}
+serde_json = {version = "1"}
+tower-http = { version = "0.5.0", features = ["trace", "cors"] }
+tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
