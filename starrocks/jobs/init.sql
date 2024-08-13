@@ -1,3 +1,5 @@
+DROP CATALOG stream_catalog;
+
 CREATE EXTERNAL CATALOG stream_catalog
 PROPERTIES
 (
@@ -8,11 +10,10 @@ PROPERTIES
     "driver_url"="https://repo1.maven.org/maven2/org/postgresql/postgresql/42.3.3/postgresql-42.3.3.jar",
     "driver_class"="org.postgresql.Driver"
 );
-DISTRIBUTED BY HASH (%s) REFRESH ASYNC EVERY(INTERVAL 3 MINUTE) AS SELECT %s FROM %s.public.%s
 
-create materialized view mv_user_champs
-distributed by hash (username, target)
-refresh async every (interval 1 minute)
+drop database stream_db;
+create database stream_db;
+use stream_db;
 
 create view v_user_champs
 as
@@ -30,9 +31,9 @@ group by username, target, count_click, sc, finish_time;
 
 create materialized view mv_fastest
 distributed by hash(target, username, ranking)
-refresh async every (interval 2 minute)
+refresh async every (interval 1 minute)
 as
-select target, username, rank() over(partition by target order by sc) ranking 
+select target, username, sc times, rank() over(partition by target order by sc) ranking 
 from (
   select username, target, sc 
   from v_user_champs 
@@ -41,9 +42,9 @@ base order by target, ranking;
 
 create materialized view mv_fastest_today
 distributed by hash(target, username, ranking)
-refresh async every (interval 2 minute)
+refresh async every (interval 1 minute)
 as
-select target, username, rank() over(partition by target order by sc) ranking 
+select target, username, sc times, rank() over(partition by target order by sc) ranking 
 from (
   select username, target, sc 
   from v_user_champs 
@@ -53,7 +54,7 @@ base order by target, ranking;
 
 create materialized view mv_shortest
 distributed by hash(target, username, ranking)
-refresh async every (interval 2 minute)
+refresh async every (interval 1 minute)
 as
 select target, username, cc as clicks, rank() over(partition by target order by cc) ranking 
 from (
@@ -64,7 +65,7 @@ base order by target, ranking;
 
 create materialized view mv_shortest_today
 distributed by hash(target, username, ranking)
-refresh async every (interval 2 minute)
+refresh async every (interval 1 minute)
 as
 select target, username, cc as clicks, rank() over(partition by target order by cc) ranking 
 from (
@@ -73,10 +74,6 @@ from (
   where date(finish_time) = date(now())
   group by username, target, count_click) 
 base order by target, ranking;
-
-
-select *
-from v_user_champs, generate_series(min(v_user_champs.sc), max(v_user_champs.sc));
 
 create materialized view mv_hist_fastest
 distributed by hash(target, sc)
@@ -112,6 +109,3 @@ with base as (
 select target, cc, total, hist 
 from hist
 group by target, cc, total, hist;
-
-
-
