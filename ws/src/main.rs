@@ -26,7 +26,7 @@ impl std::fmt::Display for InMemory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{{ latest_ts: {}, user_active: {} }}",
+            r#" {{"latest_ts": "{}", "user_active": "{}" }}"#,
             self.latest_ts, self.user_active
         )
     }
@@ -71,8 +71,8 @@ async fn handle_socket(mut socket: WebSocket, who: SocketAddr, app_state: Arc<Rw
         .unwrap();
 
     consumer.subscribe(&topic).unwrap();
-    let cache = app_state.clone();
 
+    let cache = app_state.clone();
     let mut writer = tokio::spawn(async move {
         loop {
             match consumer.recv().await {
@@ -92,9 +92,12 @@ async fn handle_socket(mut socket: WebSocket, who: SocketAddr, app_state: Arc<Rw
                     let ts = payload.get("ts").unwrap().to_string();
                     let uv = payload.get("uv").unwrap();
 
+                    let now_utc = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+
                     let mut writer = cache.write().await;
                     let mem = InMemory {
                         latest_ts: ts.to_string().trim_matches('"').replace("\\\"", ""),
+                        // latest_ts: now_utc,
                         user_active: uv.to_string(),
                     };
                     *writer = mem;
@@ -104,9 +107,10 @@ async fn handle_socket(mut socket: WebSocket, who: SocketAddr, app_state: Arc<Rw
         }
     });
 
+    let reader_cache = app_state.clone();
     let mut reader = tokio::spawn(async move {
         loop {
-            let reader = app_state.read().await;
+            let reader = reader_cache.read().await;
             if socket
                 .send(MessageWs::Text(reader.to_string()))
                 .await
@@ -120,8 +124,34 @@ async fn handle_socket(mut socket: WebSocket, who: SocketAddr, app_state: Arc<Rw
         }
     });
 
+    let updater_cache = app_state.clone();
+    let mut updater = tokio::spawn(async move {
+        loop {
+            let mut writer = updater_cache.write().await;
+
+            let now_utc = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+            let now = chrono::NaiveDateTime::parse_from_str(now_utc.as_str(), "%Y-%m-%d %H:%M:%S")
+                .unwrap();
+
+            let latest_ts = &writer.latest_ts;
+            let latest =
+                chrono::NaiveDateTime::parse_from_str(latest_ts.as_str(), "%Y-%m-%d %H:%M:%S")
+                    .unwrap_or(now);
+            let elapse = now - latest;
+            if elapse.num_seconds() > 0 {
+                let mem = InMemory {
+                    latest_ts: now_utc,
+                    user_active: String::from("0"),
+                };
+                *writer = mem;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+    });
+
     tokio::select! {
         _ = (&mut writer) => writer.abort(),
         _ = (&mut reader) => reader.abort(),
+        _ = (&mut updater) => updater.abort(),
     }
 }
