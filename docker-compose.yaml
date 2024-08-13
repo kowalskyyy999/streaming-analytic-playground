@@ -45,9 +45,9 @@ services:
     networks:
       - analytic-net
 
-  fe-server-2:
+  fe-server:
     image: starrocks-fe.3.2.8
-    container_name: fe-server-2
+    container_name: fe-server
     build:
       context: ./starrocks/image/fe
       dockerfile: Dockerfile.fe
@@ -61,9 +61,9 @@ services:
     depends_on:
       - kafka
   
-  be-server-2:
+  be-server:
     image: starrocks-be.3.2.8
-    container_name: be-server-2
+    container_name: be-server
     build:
       context: ./starrocks/image/be
       dockerfile: Dockerfile.be
@@ -75,11 +75,11 @@ services:
     networks:
       - analytic-net
     depends_on:
-      - fe-server-2
+      - fe-server
 
-  cn-server-2:
+  cn-server:
     image: starrocks-cn.3.2.8
-    container_name: cn-server-2
+    container_name: cn-server
     build:
       context: ./starrocks/image/cn
       dockerfile: Dockerfile.cn
@@ -88,7 +88,7 @@ services:
     networks:
       - analytic-net
     depends_on:
-      - be-server-2
+      - be-server
 
   jobmanager:
     image: flink-with-connector:1.17.0-scala_2.12-java11 
@@ -104,7 +104,7 @@ services:
     networks:
       - analytic-net
     depends_on:
-      - cn-server-2
+      - cn-server
 
   taskmanager:
     image: flink-with-connector:1.17.0-scala_2.12-java11 
