@@ -105,8 +105,7 @@ export default {
       }
     },
     async fetchLeaderBoardDataFastest() {
-      console.log(this.selectedOption);
-      const urlFastest = `http://localhost:8765/api/v1/fastest/${this.selectedOption}`;
+      const urlFastest = `${process.env.VUE_APP_ANALYTIC_HOST}/api/v1/fastest/${this.selectedOption}`;
       await axios.get(urlFastest)
         .then(response => {
           this.leaderboardFastest = response.data || [];
@@ -116,7 +115,7 @@ export default {
         });
     },
     async fetchLeaderBoardDataShortest() {
-      const url = `http://localhost:8765/api/v1/shortest/${this.selectedOption}`;
+      const url = `${process.env.VUE_APP_ANALYTIC_HOST}/api/v1/shortest/${this.selectedOption}`;
       await axios.get(url)
         .then(response => {
           this.leaderboardShortest = response.data || [];

@@ -39,7 +39,7 @@ export default{
   methods: {
     async signUp() {
       try {
-        const response = await axios.post('http://localhost:9090/api/auth/signup', {
+        const response = await axios.post(`${process.env.VUE_APP_BACKEND_HOST}/api/auth/signup`, {
           username: this.username,
           password: this.password
         })

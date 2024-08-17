@@ -11,11 +11,6 @@
         <div class="basis-1/5">
             <h1 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">User Active</h1>
             <p class="sm:text-3xl tracking-tight text-green-500">{{ userActive }}</p>
-            <!-- <div> -->
-            <!--   <span class="text-xl tracking-tight text-gray-900 sm:text-2xl">Last update: </span> -->
-            <!--   <span class="sm:text-xl tracking-tight text-red-500">{{ lastUpdate }}</span> -->
-            <!-- </div> -->
-            <!-- <p class="sm:text-xl tracking-tight text-green-500">Last Updated: {{ lastUpdate }}</p> -->
         </div>
     </div>
     <div class="bg-gray-100 t-6 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8 content-center text-center">
@@ -34,7 +29,6 @@
             <button type="submit" class=" text-3xl rounded-md bg-red-800 px-3.5 py-2.5 sm:text-2xl hover:bg-red-900 font-semibold text-white shadow-sm"  @click="goToReset">Reset</button>
         </div>
     </div>
-    <!-- <a href="https://www.flaticon.com/free-icons/congratulation" title="congratulation icons">Congratulation icons created by Freepik - Flaticon</a> -->
 </template>
 
 <script>
@@ -60,7 +54,7 @@ export default {
     methods: {
         async viewCard(card) {
             try {
-                await axios.post('http://localhost:9090/api/playground/boards', {
+              await axios.post(`${process.env.VUE_APP_BACKEND_HOST}/api/playground/boards`, {
                     userId: this.userId,
                     value: card.value
                 })
@@ -75,7 +69,7 @@ export default {
         async goToSubmit() {
             if (this.countClick > 0) {
                 try {
-                    const response = await axios.post('http://localhost:9090/api/playground/boards/submit', {
+                    const response = await axios.post(`${process.env.VUE_APP_BACKEND_HOST}/api/playground/boards/submit`, {
                         userId: this.userId,
                         target: this.guessNumber,
                         clicks: this.countClick
@@ -95,7 +89,7 @@ export default {
         async goToReset() {
             if (this.countClick > 0) {
                 try {
-                    await axios.post('http://localhost:9090/api/playground/boards/reset', {
+                    await axios.post(`${process.env.VUE_APP_BACKEND_HOST}/api/playground/boards/reset`, {
                         userId: this.userId
                     })
 
@@ -121,7 +115,7 @@ export default {
             }
         },
         connectWebSocket() {
-            this.websocket = new WebSocket('ws://localhost:8000/ws');
+            this.websocket = new WebSocket(`${process.env.VUE_APP_WS_HOST}/ws`);
             
             this.websocket.onopen = () => {
               console.log('WebSocket connection opened');
@@ -129,7 +123,7 @@ export default {
 
             this.websocket.onmessage = (event) => {
                 const message = JSON.parse(event.data);
-                console.log(message);
+                // console.log(message);
                 this.userActive = message.user_active;
                 this.lastUpdate = message.latest_ts;
             };

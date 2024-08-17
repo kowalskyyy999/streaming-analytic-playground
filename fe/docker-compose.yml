@@ -1,0 +1,22 @@
+version: '3.1'
+
+networks:
+  analytic-net:
+    driver: bridge
+    external: true
+
+services:
+  fe:
+    image: fe:latest
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: fe
+    environment:
+      - VUE_APP_BACKEND_HOST=${VUE_APP_BACKEND_HOST}
+      - VUE_APP_WS_HOST=${VUE_APP_WS_HOST}
+      - VUE_APP_ANALYTIC_HOST=${VUE_APP_ANALYTIC_HOST}
+    ports:
+      - 8080:8080
+    networks:
+      - analytic-net
