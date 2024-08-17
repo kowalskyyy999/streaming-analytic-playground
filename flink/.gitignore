@@ -2,3 +2,8 @@
 *.txt
 .env
 /jobs
+/job/*.py
+/job/*.sh
+*.job
+*.yaml
+*.backup

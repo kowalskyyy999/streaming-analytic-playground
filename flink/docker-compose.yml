@@ -9,21 +9,28 @@ services:
   jobmanager:
     image: flink-with-connector:1.17.0-scala_2.12-java11 
     build:
-      context: ./
+      context: .
       dockerfile: Dockerfile
     container_name: jobmanager
-    command: ["jobmanager"]
+    command: ["/bin/sh", "-c", "/opt/flink/bin/start-jobmanager.sh"]
     env_file:
       - .env
+    environment:
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - KAFKA_SOURCE_TOPIC=${KAFKA_SOURCE_TOPIC}
+      - KAFKA_SINK_TOPIC=${KAFKA_SINK_TOPIC}
+      - JOBMANAGER_ENDPOINT=${JOBMANAGER_ENDPOINT}
     ports:
       - 8081:8081
     networks:
       - analytic-net
+    depends_on:
+      - kafka
 
   taskmanager:
     image: flink-with-connector:1.17.0-scala_2.12-java11 
     build:
-      context: ./
+      context: .
       dockerfile: Dockerfile
     container_name: taskmanager
     command: ["taskmanager"]
@@ -36,20 +43,3 @@ services:
       - analytic-net
     depends_on:
       - jobmanager
-    
-  sql-client:
-    image: flink-with-connector:1.17.0-scala_2.12-java11 
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    command: bin/sql-client.sh
-    container_name: flink-sql
-    depends_on:
-      - jobmanager
-    environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
-        rest.address: jobmanager
-    networks:
-      - analytic-net
