@@ -1,0 +1,105 @@
+version: '3.1'
+
+networks:
+  analytic-net:
+    driver: bridge
+    external: true
+
+services:
+  be:
+    image: be:latest
+    build:
+      context: ./be
+      dockerfile: Dockerfile
+    container_name: be
+    deploy:
+      resources:
+        limits:
+          cpus: '0.01'
+          memory: 50M
+    ports:
+      - 9990:9990
+    networks:
+      - analytic-net
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - KAFKA_TOPIC=${KAFKA_TOPIC}
+    depends_on:
+      - db
+      - starrocks-cn
+
+  ws:
+    image: ws:latest
+    build:
+      context: ./ws
+      dockerfile: Dockerfile
+    container_name: ws
+    deploy:
+      resources:
+        limits:
+          cpus: '0.01'
+          memory: 50M
+    ports:
+      - 9991:9991
+    networks:
+      - analytic-net
+    environment:
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - KAFKA_TOPIC=${KAFKA_SINK_TOPIC}
+    depends_on:
+      - kafka-server
+      - jobmanager 
+      - be
+
+  analytic-api:
+    image: analytic-api:latest
+    build:
+      context: ./analytic_api
+      dockerfile: Dockerfile
+    container_name: analytic-api
+    deploy:
+      resources:
+        limits:
+          cpus: '0.01'
+          memory: 50M
+    ports:
+      - 9992:9992
+    networks:
+      - analytic-net
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - STARROCKS_PASSWORD=${STARROCKS_PASSWORD}
+      - STARROCKS_USER=${STARROCKS_USER}
+      - STARROCKS_HOST=${STARROCKS_HOST}
+      - STARROCKS_PORT=${STARROCKS_PORT}
+    depends_on:
+      - starrocks-cn
+      - db
+
+  fe:
+    image: fe:latest
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+    container_name: fe
+    environment:
+      - VUE_APP_BACKEND_HOST=${VUE_APP_BACKEND_HOST}
+      - VUE_APP_WS_HOST=${VUE_APP_WS_HOST}
+      - VUE_APP_ANALYTIC_HOST=${VUE_APP_ANALYTIC_HOST}
+    ports:
+      - 8080:8080
+    networks:
+      - analytic-net
+    depends_on:
+      - be 
+      - ws 
+      - analytic-api
