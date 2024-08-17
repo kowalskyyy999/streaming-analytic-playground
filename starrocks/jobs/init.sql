@@ -1,17 +1,14 @@
-DROP CATALOG stream_catalog;
-
 CREATE EXTERNAL CATALOG stream_catalog
 PROPERTIES
 (
     "type"="jdbc", 
     "user"="kowalskyyy",
     "password"="Password123456",
-    "jdbc_uri"="jdbc:postgresql://db_analytic:5432/kowlsss_db",
+    "jdbc_uri"="jdbc:postgresql://db:5432/stream_db",
     "driver_url"="https://repo1.maven.org/maven2/org/postgresql/postgresql/42.3.3/postgresql-42.3.3.jar",
     "driver_class"="org.postgresql.Driver"
 );
 
-drop database stream_db;
 create database stream_db;
 use stream_db;
 

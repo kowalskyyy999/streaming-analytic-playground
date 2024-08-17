@@ -6,9 +6,9 @@ networks:
     external: true
 
 services:
-  fe-server-2:
+  starrocks-fe:
     image: starrocks-fe.3.2.8
-    container_name: fe-server-2
+    container_name: starrocks-fe
     build:
       context: ./image/fe
       dockerfile: Dockerfile.fe
@@ -20,9 +20,9 @@ services:
     networks:
       - analytic-net
   
-  be-server-2:
+  starrocks-be:
     image: starrocks-be.3.2.8
-    container_name: be-server-2
+    container_name: starrocks-be
     build:
       context: ./image/be
       dockerfile: Dockerfile.be
@@ -34,11 +34,11 @@ services:
     networks:
       - analytic-net
     depends_on:
-      - fe-server-2
+      - starrocks-fe
 
-  cn-server-2:
+  starrocks-cn:
     image: starrocks-cn.3.2.8
-    container_name: cn-server-2
+    container_name: starrocks-cn
     build:
       context: ./image/cn
       dockerfile: Dockerfile.cn
@@ -47,7 +47,7 @@ services:
     networks:
       - analytic-net
     depends_on:
-      - be-server-2
+      - starrocks-be
 
 volumes:
   st-fe:

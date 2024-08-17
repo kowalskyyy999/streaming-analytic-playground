@@ -1,1 +1,4 @@
 image/base/*.gz
+/jobs
+/jobs/*.env 
+/jobs/*.py
