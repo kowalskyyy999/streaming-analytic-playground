@@ -1,0 +1,36 @@
+version: '3.1'
+
+networks:
+  analytic-net:
+    driver: bridge
+    external: true
+
+services:
+  analytic-api:
+    image: analytic-api:latest
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: analytic-api
+    deploy:
+      resources:
+        limits:
+          cpus: '0.01'
+          memory: 50M
+    ports:
+      - 9992:9992
+    networks:
+      - analytic-net
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - STARROCKS_PASSWORD=${STARROCKS_PASSWORD}
+      - STARROCKS_USER=${STARROCKS_USER}
+      - STARROCKS_DB=${STARROCKS_DB}
+      - STARROCKS_HOST=${STARROCKS_HOST}
+      - STARROCKS_PORT=${STARROCKS_PORT}
+    depends_on:
+      - db
