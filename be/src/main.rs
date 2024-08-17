@@ -70,8 +70,9 @@ async fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
         .layer(
             tower_http::cors::CorsLayer::new()
                 .allow_origin(Any)
-                // .allow_headers([CONTENT_TYPE])
-                .allow_methods([Method::POST]),
+                .allow_headers([CONTENT_TYPE])
+                .allow_methods([Method::POST])
+                .allow_private_network(true),
         );
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:9990").await.unwrap();
