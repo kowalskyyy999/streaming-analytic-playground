@@ -7,14 +7,19 @@ use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::Router;
 
+use dotenv;
 use rdkafka::consumer::stream_consumer::StreamConsumer;
 use rdkafka::consumer::Consumer;
 use rdkafka::message::Message;
 use rdkafka::ClientConfig;
 use serde_json::json;
+use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+
+use tower_http::trace::{self, TraceLayer};
+use tracing::{error, info, Level};
 
 #[derive(Debug, Clone, Default)]
 struct InMemory {
@@ -34,14 +39,29 @@ impl std::fmt::Display for InMemory {
 
 #[tokio::main]
 async fn main() {
+    if let Ok(_) = std::fs::File::open(".env") {
+        dotenv::dotenv().ok();
+    };
+
+    tracing_subscriber::fmt()
+        .with_target(false)
+        .compact()
+        .init();
+
     let app_state = Arc::new(RwLock::new(InMemory::default()));
 
     let app = Router::new()
         .route("/ws", get(ws_handler))
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+        )
         .with_state(app_state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:9991").await.unwrap();
 
+    info!("listening websocket on: {:?}", listener);
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
@@ -59,8 +79,9 @@ async fn ws_handler(
 }
 
 async fn handle_socket(mut socket: WebSocket, who: SocketAddr, app_state: Arc<RwLock<InMemory>>) {
-    let brokers = "localhost:9092";
-    let topic = ["active-user-counts"];
+    let brokers = env::var("KAFKA_BROKER").unwrap();
+    let topic = env::var("KAFKA_TOPIC").unwrap();
+    let topics = [topic.as_str()];
 
     let consumer: StreamConsumer = ClientConfig::new()
         .set("group.id", "test")
@@ -70,14 +91,15 @@ async fn handle_socket(mut socket: WebSocket, who: SocketAddr, app_state: Arc<Rw
         .create()
         .unwrap();
 
-    consumer.subscribe(&topic).unwrap();
+    consumer.subscribe(&topics).unwrap();
 
     let cache = app_state.clone();
     let mut writer = tokio::spawn(async move {
         loop {
             match consumer.recv().await {
                 Err(error) => {
-                    println!("{error}")
+                    error!("{error}");
+                    // println!("{error}")
                 }
                 Ok(data) => {
                     let payload = match data.payload_view::<str>() {
@@ -92,12 +114,9 @@ async fn handle_socket(mut socket: WebSocket, who: SocketAddr, app_state: Arc<Rw
                     let ts = payload.get("ts").unwrap().to_string();
                     let uv = payload.get("uv").unwrap();
 
-                    let now_utc = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
-
                     let mut writer = cache.write().await;
                     let mem = InMemory {
                         latest_ts: ts.to_string().trim_matches('"').replace("\\\"", ""),
-                        // latest_ts: now_utc,
                         user_active: uv.to_string(),
                     };
                     *writer = mem;
@@ -116,7 +135,8 @@ async fn handle_socket(mut socket: WebSocket, who: SocketAddr, app_state: Arc<Rw
                 .await
                 .is_err()
             {
-                println!("Client disconnected");
+                error!("Client disconnected");
+                // println!("Client disconnected");
                 return;
             }
 

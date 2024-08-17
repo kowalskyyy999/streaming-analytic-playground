@@ -1,0 +1,28 @@
+version: '3.1'
+
+networks:
+  analytic-net:
+    driver: bridge
+    external: true
+
+services:
+  ws:
+    image: ws:latest
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: ws
+    deploy:
+      resources:
+        limits:
+          cpus: '0.01'
+          memory: 50M
+    ports:
+      - 9991:9991
+    networks:
+      - analytic-net
+    environment:
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - KAFKA_TOPIC=${KAFKA_SINK_TOPIC}
+    depends_on:
+      - kafka-server
