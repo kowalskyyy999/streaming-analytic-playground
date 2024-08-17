@@ -94,7 +94,7 @@ async fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
         .layer(
             tower_http::cors::CorsLayer::new()
                 .allow_origin(Any)
-                .allow_headers([CONTENT_TYPE])
+                // .allow_headers([CONTENT_TYPE])
                 .allow_methods([Method::GET]),
         );
 
