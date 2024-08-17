@@ -7,21 +7,27 @@ networks:
 
 services:
   be:
-    image: analytic-be:latest
+    image: be:latest
     build:
       context: ./
       dockerfile: Dockerfile
-    container_name: be_analytic
+    container_name: be
     deploy:
       resources:
         limits:
           cpus: '0.01'
           memory: 50M
     ports:
-      - 9090:9090
+      - 9990:9990
     networks:
       - analytic-net
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - KAFKA_TOPIC=${KAFKA_TOPIC}
     depends_on:
-      - kafka-server
-      - fe_analytic
-      - db_analytic
+      - db

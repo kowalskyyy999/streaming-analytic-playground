@@ -1,14 +1,11 @@
-use std::ops::Deref;
-use std::str::FromStr;
-
 use axum::Extension;
-use axum::{
-        extract::State, 
-        http::StatusCode,
-        Json};
+use axum::{extract::State, http::StatusCode, Json};
 use chrono::{NaiveDate, NaiveDateTime};
 use rdkafka::producer::FutureRecord;
 use serde::{Deserialize, Serialize};
+use std::env;
+use std::ops::Deref;
+use std::str::FromStr;
 
 use rdkafka::{config::ClientConfig, producer::FutureProducer};
 use serde_json::json;
@@ -23,20 +20,19 @@ use crate::state::AppState;
 pub struct SubmitBody {
     userId: String,
     target: i32,
-    clicks: i32
+    clicks: i32,
 }
 
 #[derive(Debug, Serialize)]
 pub struct SubmitResp {
     message: String,
-    refresh: i32
+    refresh: i32,
 }
 
 pub async fn board_submit(
     State(state): State<AppState>,
-    Json(payload): Json<SubmitBody>
+    Json(payload): Json<SubmitBody>,
 ) -> Results<(StatusCode, Json<SubmitResp>)> {
-
     let user_id = &payload.userId;
     let user_id_cln = user_id.clone();
 
@@ -52,21 +48,23 @@ pub async fn board_submit(
     {
         let lock = cache.get(user_id).unwrap();
         let buffer = lock.read().unwrap();
-        
+
         is_match = buffer.num == target;
-        println!("Is Match => {}", is_match);
+        // println!("Is Match => {}", is_match);
 
         if is_match {
             let start_time = &buffer.start_time;
             let finish_time = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
-            // let brokers = "kafka-server:9092";
-            let brokers = "kafka:9092";
-            let topic_name = "channel1-topic";
+            let kafka_broker =
+                env::var("KAFKA_BROKER").expect("please fill the kafka bootstrap server");
+            let topic_name = env::var("KAFKA_TOPIC").expect("please fill the kafka topic");
 
-            let start_time_kafka = NaiveDateTime::parse_from_str(&start_time, "%Y-%m-%dT%H:%M:%SZ").unwrap();
-            let finish_time_kafka = NaiveDateTime::parse_from_str(&finish_time, "%Y-%m-%dT%H:%M:%SZ").unwrap();
-            
+            let start_time_kafka =
+                NaiveDateTime::parse_from_str(&start_time, "%Y-%m-%dT%H:%M:%SZ").unwrap();
+            let finish_time_kafka =
+                NaiveDateTime::parse_from_str(&finish_time, "%Y-%m-%dT%H:%M:%SZ").unwrap();
+
             let kafka_payload = json!({
                 "user_id": &user_id_cln,
                 "start_time": &start_time_kafka.to_string(),
@@ -75,27 +73,25 @@ pub async fn board_submit(
                 "count_clicks": payload.clicks
             });
 
-            // start_time_str = start_time_kafka;
-            // finish_time_str = finish_time_kafka;
-
             let uuid_user = Uuid::from_str(&user_id.clone().as_str()).unwrap();
 
             let kafka_producer: &FutureProducer = &ClientConfig::new()
-                .set("bootstrap.servers", brokers)
+                .set("bootstrap.servers", kafka_broker)
                 .set("message.timeout.ms", "200")
                 .create()
                 .expect("Producer creation error");
-            
+
             let kafka_producer = kafka_producer.clone();
 
             tokio::spawn(async move {
-                let _ = kafka_producer.send(
-                    FutureRecord::to(&topic_name)
-                        .payload(&kafka_payload.to_string())
-                        .key(&user_id_cln), 
-                        std::time::Duration::from_millis(200)).await;
-
-
+                let _ = kafka_producer
+                    .send(
+                        FutureRecord::to(&topic_name)
+                            .payload(&kafka_payload.to_string())
+                            .key(&user_id_cln),
+                        std::time::Duration::from_millis(200),
+                    )
+                    .await;
             });
 
             tokio::spawn(async move {
@@ -109,23 +105,25 @@ pub async fn board_submit(
                         .await
                         .unwrap();
             });
-
-            // tokio::select! {}
         }
     }
 
     if is_match {
         cache.remove(user_id).unwrap();
-        return Ok(
-            (
-                StatusCode::OK,
-                Json(SubmitResp { message: "Congratulations, your calculation is match".to_string(), refresh: 1 })
-            )
-        )
+        return Ok((
+            StatusCode::OK,
+            Json(SubmitResp {
+                message: "Congratulations, your calculation is match".to_string(),
+                refresh: 1,
+            }),
+        ));
     }
     let response = (
         StatusCode::NOT_FOUND,
-        Json(SubmitResp { message: "Sorry, your calculation is wrong".to_string(), refresh: 0})
+        Json(SubmitResp {
+            message: "Sorry, your calculation is wrong".to_string(),
+            refresh: 0,
+        }),
     );
 
     Ok(response)

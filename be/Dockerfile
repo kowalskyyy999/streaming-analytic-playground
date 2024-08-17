@@ -17,6 +17,6 @@ RUN apt-get update
 
 COPY --from=builder /usr/local/cargo/bin/be /usr/local/bin/be
 
-EXPOSE 9090
+EXPOSE 9990
 
 CMD ["be"]
