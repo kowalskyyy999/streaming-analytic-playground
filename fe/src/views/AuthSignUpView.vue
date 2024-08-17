@@ -42,8 +42,12 @@ export default{
         const response = await axios.post(`${process.env.VUE_APP_BACKEND_HOST}/api/auth/signup`, {
           username: this.username,
           password: this.password
+        }, {
+          headers: {
+            'Content-Type':'application/json'
+          }
         })
-
+        
         if (response.status == 201) {
           this.$router.push({ name: 'board', params: { userId: response.data.userid } })
         }
