@@ -1,4 +1,4 @@
-FROM rust:1.77-slim-bullseye as builder 
+FROM rust:1.81-slim-bullseye as builder 
 
 RUN mkdir -p /app 
 
